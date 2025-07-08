@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Monitoramento em Tempo Real</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f6f8fa;
+        color: #111;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        background: #fff;
+        padding: 24px 32px 16px 32px;
+        box-shadow: 0 2px 8px #0001;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      .header-left {
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        gap: 8px;
+      }
+      .header-title {
+        font-size: 32px;
+        color: oklch(12.9% 0.042 264.695);
+        font-weight: bold;
+        margin: 0;
+        letter-spacing: 1px;
+      }
+      .header-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 6px 16px;
+        border-radius: 20px;
+        background: #e9ecef;
+        color: #333;
+        min-width: 120px;
+        transition: background 0.3s, color 0.3s;
+      }
+      .header-status.saude {
+        background: #d4edda;
+        color: #155724;
+      }
+      .header-status.atencao {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .header-status.perigo {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .header-status .icon {
+        margin-right: 0;
+      }
+      #connect {
+        display: flex;
+        align-self: flex-start;
+        align-items: center;
+        gap: 8px;
+        background: oklch(54.6% 0.245 262.881);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 22px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 8px #0002;
+        transition: background 0.2s;
+      }
+      #connect:hover {
+        background: oklch(50% 0.134 242.749);
+      }
+      main {
+        display: flex;
+        justify-content: space-between;
+        margin: 32px 0;
+        padding: 0 32px;
+        width: 100%;
+      }
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px #0002;
+        padding: 24px 32px;
+        min-width: 280px;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        position: relative;
+      }
+      .card .icon {
+        width: 40px;
+        height: 40px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .card-label {
+        font-size: 1.1em;
+        color: #555;
+        margin-bottom: 2px;
+      }
+      .card-value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #222;
+      }
+      .card-unit {
+        font-size: 1em;
+        color: #888;
+        margin-left: 4px;
+      }
+      #toast {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #fff;
+        color: #0a0a0a;
+        text-align: left;
+        border-radius: 4px;
+        padding: 16px 16px 16px 16px;
+        position: fixed;
+        z-index: 10;
+        right: 16px;
+        bottom: 30px;
+        font-size: 1em;
+        opacity: 0;
+        transition: opacity 0.5s, visibility 0.5s;
+        margin-left: 0;
+        box-shadow: 0 2px 8px #0004;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background-repeat: no-repeat;
+        background-position: 16px center;
+      }
+      #toast.show {
+        visibility: visible;
+        opacity: 1;
+      }
+      #toast.success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      #toast.error {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      #toast.info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+      }
+      #toast .icon {
+        flex-shrink: 0;
+        margin-right: 0;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-left">
+        <span class="header-title"
+          >Medidor de Qualidade de Ambiente Industrial</span
+        >
+        <button id="connect">Conectar ao Sensor</button>
+      </div>
+      <div id="header-status" class="header-status">
+        <span>Status:</span>
+        <span id="status-header"></span>
+      </div>
+    </header>
+    <main>
+      <div class="card" id="card-temp">
+        <svg class="icon" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M14 14.76V5a2 2 0 1 0-4 0v9.76a4 4 0 1 0 4 0Z"
+            stroke="#007bff"
+            stroke-width="2"
+          />
+          <circle cx="12" cy="18" r="2" fill="#007bff" />
+        </svg>
+        <div class="card-label">Temperatura</div>
+        <div>
+          <span class="card-value" id="temp">--</span
+          ><span class="card-unit">°C</span>
+        </div>
+      </div>
+
+      <div class="card" id="card-umid">
+        <svg class="icon" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 2S5 10 5 15a7 7 0 0 0 14 0c0-5-7-13-7-13Z"
+            stroke="#17a2b8"
+            stroke-width="2"
+          />
+          <path d="M12 14a3 3 0 0 0-3 3" stroke="#17a2b8" stroke-width="2" />
+        </svg>
+        <div class="card-label">Umidade</div>
+        <div>
+          <span class="card-value" id="umid">--</span
+          ><span class="card-unit">%</span>
+        </div>
+      </div>
+
+      <div class="card" id="card-gas">
+        <svg class="icon" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M6 8h12a2 2 0 0 1 2 2v4a5 5 0 0 1-10 0V10a2 2 0 0 1 2-2h6"
+            stroke="#ffc107"
+            stroke-width="2"
+          />
+          <path d="M9 20h6" stroke="#ffc107" stroke-width="2" />
+        </svg>
+        <div class="card-label">Gás</div>
+        <div><span class="card-value" id="gas">--</span></div>
+      </div>
+
+      <div class="card" id="card-gas-amb">
+        <svg class="icon" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M5 15a7 7 0 0 1 14 0v2H5v-2Z"
+            stroke="#6c757d"
+            stroke-width="2"
+          />
+          <path d="M9 22h6" stroke="#6c757d" stroke-width="2" />
+          <path d="M12 18v4" stroke="#6c757d" stroke-width="2" />
+        </svg>
+        <div class="card-label">Gás Ambiente</div>
+        <div><span class="card-value" id="gas_amb">--</span></div>
+      </div>
+    </main>
+
+    <div id="toast"></div>
+    <script>
+      const temp = document.getElementById("temp");
+      const umid = document.getElementById("umid");
+      const gas = document.getElementById("gas");
+      const gas_amb = document.getElementById("gas_amb");
+      const statusHeader = document.getElementById("status-header");
+      const headerStatus = document.getElementById("header-status");
+      const connectBtn = document.getElementById("connect");
+      const toast = document.getElementById("toast");
+      let port = null;
+      let isOpen = false;
+
+      function showToast(msg, type = "info") {
+        let icon = "";
+        if (type === "success") {
+          icon = `<svg class="icon" width="20" height="20" fill="#155724" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#28a745"/><path d="M6 10.5l2.5 2.5 5-5" stroke="#fff" stroke-width="2" fill="none"/></svg>`;
+        } else if (type === "error") {
+          icon = `<svg class="icon" width="20" height="20" fill="#721c24" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#dc3545"/><path d="M7 7l6 6M13 7l-6 6" stroke="#fff" stroke-width="2" fill="none"/></svg>`;
+        } else {
+          icon = `<svg class="icon" width="20" height="20" fill="#0c5460" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#17a2b8"/><text x="10" y="15" text-anchor="middle" font-size="12" fill="#fff">i</text></svg>`;
+        }
+        toast.innerHTML = icon + `<span>${msg}</span>`;
+        toast.className = `show ${type}`;
+        setTimeout(() => {
+          toast.className = toast.className.replace("show", "");
+        }, 3500);
+      }
+
+      connectBtn.onclick = async () => {
+        if (!("serial" in navigator)) {
+          showToast(
+            "Seu navegador não suporta Web Serial API. Use Chrome ou Edge.",
+            "error"
+          );
+          return;
+        }
+        if (isOpen) {
+          showToast("A porta já está aberta!", "info");
+          return;
+        }
+        try {
+          port = await navigator.serial.requestPort();
+          await port.open({ baudRate: 115200 });
+          isOpen = true;
+          showToast("Conectado com sucesso!", "success");
+        } catch (err) {
+          showToast("Erro ao abrir a porta serial: " + err.message, "error");
+          return;
+        }
+
+        const decoder = new TextDecoderStream();
+        port.readable.pipeTo(decoder.writable);
+        const reader = decoder.readable.getReader();
+
+        let buffer = "";
+        while (true) {
+          try {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += value;
+            let lines = buffer.split("\n");
+            buffer = lines.pop();
+            for (let line of lines) {
+              try {
+                const data = JSON.parse(line);
+                temp.textContent = data.temperatura;
+                umid.textContent = data.umidade;
+                gas.textContent = data.gas;
+                gas_amb.textContent = data.gas_amb;
+
+                statusHeader.textContent = data.status;
+                headerStatus.classList.remove("saude", "atencao", "perigo");
+                let statusIcon = "";
+                if (data.status.includes("PERIGO")) {
+                  headerStatus.classList.add("perigo");
+                  statusIcon = `<svg class="icon" width="20" height="20" fill="#721c24" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#dc3545"/><path d="M7 7l6 6M13 7l-6 6" stroke="#fff" stroke-width="2" fill="none"/></svg>`;
+                } else if (data.status.includes("ATENCAO")) {
+                  headerStatus.classList.add("atencao");
+                  statusIcon = `<svg class="icon" width="20" height="20" fill="#856404" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#ffe066"/><text x="10" y="15" text-anchor="middle" font-size="12" fill="#856404">!</text></svg>`;
+                } else {
+                  headerStatus.classList.add("saude");
+                  statusIcon = `<svg class="icon" width="20" height="20" fill="#155724" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#28a745"/><path d="M6 10.5l2.5 2.5 5-5" stroke="#fff" stroke-width="2" fill="none"/></svg>`;
+                }
+                headerStatus.innerHTML =
+                  statusIcon + `<span id="status-header">${data.status}</span>`;
+              } catch (e) {}
+            }
+          } catch (err) {
+            showToast("Erro de leitura da serial: " + err.message, "error");
+            break;
+          }
+        }
+        isOpen = false;
+      };
+    </script>
+  </body>
+</html>
