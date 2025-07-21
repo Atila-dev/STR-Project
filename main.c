@@ -9,14 +9,12 @@
 #include <stdio.h>
 #include <string.h>
 
-// filepath: c:\Users\atila\TESTE2\TESTE2.c
-
 // Definições dos pinos e sensores
 #define I2C_PORT i2c0
 #define SDA_PIN 14  
 #define SCL_PIN 15  
 #define DHT_PIN 18
-#define MQ2_ADC_PIN 20
+#define MQ2_DIGITAL_PIN 16
 
 // Pinos dos LEDs de alerta
 #define LED_VERDE 4   
@@ -27,15 +25,14 @@
 #define BUZZER_PIN 21
 #define BUZZER_FREQUENCY 2500
 #define BUTTON_PIN 5
-#define CALIB_BUTTON_PIN 6
 
-void gerar_json(float temperatura, float umidade, uint16_t gas, uint16_t gas_amb, const char* status, char* buffer, size_t buffer_size) {
+void gerar_json(float temperatura, float umidade, char* gas, char* gas_amb, const char* status, char* buffer, size_t buffer_size) {
     snprintf(buffer, buffer_size,
         "{"
             "\"temperatura\":%.1f,"
             "\"umidade\":%.1f,"
-            "\"gas\":%u,"
-            "\"gas_amb\":%u,"
+            "\"gas\":\"%s\","
+            "\"gas_amb\":\"%s\","
             "\"status\":\"%s\""
         "}",
         temperatura, umidade, gas, gas_amb, status
@@ -73,16 +70,13 @@ void beep_alert(uint pin, int type) {
     int beeps = (type == 1) ? 1 : 3;
     int beep_time = (type == 1) ? 200 : 100;  
     for (int i = 0; i < beeps; i++) {
-        pwm_set_gpio_level(pin, 2048);
+        pwm_set_gpio_level(pin, 4095);
         sleep_ms(beep_time);
         pwm_set_gpio_level(pin, 0);
         sleep_ms(beep_time);
     }
 }
-uint16_t read_mq2_adc() {
-    adc_select_input(0); // ADC0 = GPIO26
-    return adc_read();   // Retorna valor de 0 a 4095
-}
+
 
 int main() {
 
@@ -98,10 +92,10 @@ int main() {
     sleep_ms(100); // Pequeno delay para garantir que o I2C estabilize
 
     ssd1306_init();
-
-    adc_init();
     gpio_init(DHT_PIN);
     gpio_set_dir(DHT_PIN, GPIO_IN);
+    gpio_init(MQ2_DIGITAL_PIN);
+    gpio_set_dir(MQ2_DIGITAL_PIN, GPIO_IN);
 
     setup_leds();
     gpio_init(BUZZER_PIN);
@@ -111,12 +105,8 @@ int main() {
     gpio_set_dir(BUTTON_PIN, GPIO_IN);
     gpio_pull_up(BUTTON_PIN); // Botão entre pino e GND
 
-    gpio_init(CALIB_BUTTON_PIN);
-    gpio_set_dir(CALIB_BUTTON_PIN, GPIO_IN);
-    gpio_pull_up(CALIB_BUTTON_PIN); // Botão entre pino e GND
 
     uint16_t mq2_ambient = 0;
-    bool last_calib_button = 1;
     
     float temperature = 0.0f;
     float humidity = 0.0f;
@@ -124,18 +114,13 @@ int main() {
     bool last_button_state = 1;
 
     while (1) {
-    bool calib_button = gpio_get(CALIB_BUTTON_PIN);
-        uint16_t mq2_value = read_mq2_adc();
+   
+    bool gas_alert = !gpio_get(MQ2_DIGITAL_PIN); // ou gpio_get, dependendo da lógica do módulo
+    // Definir valores para mq2_value e mq2_ambient para o display e JSON
+    char* mq2_value = gas_alert ? "DETECTADO" : "NORMAL"; // Valores simulados quando usa pino digital
+    char* mq2_ambient = "ESTÁVEL"; // Valor base simulado            
 
-        if (!calib_button && last_calib_button) { // Pressionado
-            mq2_ambient = mq2_value;
-        }
-        last_calib_button = calib_button;
-
-        // --- Alerta de gás ---
-        bool gas_alert = (mq2_value > mq2_ambient + 50); // 50 é margem, ajuste conforme necessário
-
-            // Leitura do botão (BitDogLab: detecta borda de descida)
+// Leitura do botão (BitDogLab: detecta borda de descida)
     bool button_state = gpio_get(BUTTON_PIN);
     if (!button_state && last_button_state) { // Pressionado
         alarm_enabled = !alarm_enabled;
@@ -146,13 +131,13 @@ int main() {
         ssd1306_clear();
         ssd1306_draw_string(10, 10, "Erro ao ler sensor");
         ssd1306_update();
-        sleep_ms(2000);
+        sleep_ms(1000);
         continue;
     }
 
     char status_str[20];
     if (gas_alert) {
-            snprintf(status_str, sizeof(status_str), "GAS PERIGO!");
+            snprintf(status_str, sizeof(status_str), "GÁS PERIGO!");
             if (alarm_enabled) {
                 set_leds(0, 0, 1);
                 beep_alert(BUZZER_PIN, 2);
@@ -171,7 +156,7 @@ int main() {
             }
         } else if ((temperature >= 32.0 && temperature < 36.0) ||
                    (humidity >= 60.0 && humidity <= 80.0)) {
-            snprintf(status_str, sizeof(status_str), "ATENCAO");
+            snprintf(status_str, sizeof(status_str), "ATENÇÃO");
             if (alarm_enabled) {
                 set_leds(0, 1, 0);
                 beep_alert(BUZZER_PIN, 1);
@@ -180,7 +165,7 @@ int main() {
                 pwm_set_gpio_level(BUZZER_PIN, 0);
             }
         } else {
-            snprintf(status_str, sizeof(status_str), "SAUDAVEL");
+            snprintf(status_str, sizeof(status_str), "SAUDÁVEL");
             set_leds(1, 0, 0);
             pwm_set_gpio_level(BUZZER_PIN, 0);
         }
@@ -188,7 +173,7 @@ int main() {
         char temp_str[20], hum_str[20], gas_str[32];
         snprintf(temp_str, sizeof(temp_str), "Temp: %.1fC", temperature);
         snprintf(hum_str, sizeof(hum_str), "Umid: %.1f%%", humidity);
-        snprintf(gas_str, sizeof(gas_str), "Gas: %u (Amb: %u)", mq2_value, mq2_ambient);
+        snprintf(gas_str, sizeof(gas_str), "Gas: %s (Amb: %s)", mq2_value, mq2_ambient);
 
         ssd1306_clear();
         ssd1306_draw_string(0, 0, "Monitoramento");
@@ -198,12 +183,12 @@ int main() {
         ssd1306_draw_string(0, 56, gas_str);
         ssd1306_update();
 
-        sleep_ms(2000);
+        sleep_ms(1000);
 
     char json_buffer[128];
     gerar_json(temperature, humidity, mq2_value, mq2_ambient, status_str, json_buffer, sizeof(json_buffer));
 
-    // Exemplo: envie para serial, web, etc.
+    // Exemplo: envie para serial
     printf("%s\n", json_buffer);
     }
     return 0;

@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(TESTE2 TESTE2.c dht22.c ssd1306_i2c.c ssd1306_font.c)
+add_executable(TESTE2 main.c dht22.c ssd1306_i2c.c ssd1306_font.c)
 
 pico_set_program_name(TESTE2 "TESTE2")
 pico_set_program_version(TESTE2 "0.1")

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Monitoramento Industrial</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="header-left">
+        <h1 class="header-title">Monitoramento Industrial</h1>
+        <button id="connect">Conectar Sensor</button>
+      </div>
+      <div id="header-status" class="header-status">
+        <span>Status:</span>
+        <span id="status-header">-</span>
+      </div>
+    </header>
+    <div id="alert-banner">⚠️ ALERTA: CONDIÇÃO CRÍTICA DETECTADA ⚠️</div>
+    <main>
+      <div class="card" id="card-temp">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M14 14.76V5a2 2 0 1 0-4 0v9.76a4 4 0 1 0 4 0Z"
+              stroke="#3498db"
+              stroke-width="2"
+            />
+            <circle cx="12" cy="18" r="2" fill="#3498db" />
+          </svg>
+          <div class="card-label">Temperatura</div>
+        </div>
+        <div class="card-value-container">
+          <span class="card-value" id="temp">--</span>
+          <span class="card-unit">°C</span>
+        </div>
+      </div>
+
+      <div class="card" id="card-umid">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 2S5 10 5 15a7 7 0 0 0 14 0c0-5-7-13-7-13Z"
+              stroke="#1abc9c"
+              stroke-width="2"
+            />
+            <path d="M12 14a3 3 0 0 0-3 3" stroke="#1abc9c" stroke-width="2" />
+          </svg>
+          <div class="card-label">Umidade</div>
+        </div>
+        <div class="card-value-container">
+          <span class="card-value" id="umid">--</span>
+          <span class="card-unit">%</span>
+        </div>
+      </div>
+
+      <div class="card" id="card-gas">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M6 8h12a2 2 0 0 1 2 2v4a5 5 0 0 1-10 0V10a2 2 0 0 1 2-2h6"
+              stroke="#f39c12"
+              stroke-width="2"
+            />
+            <path d="M9 20h6" stroke="#f39c12" stroke-width="2" />
+          </svg>
+          <div class="card-label">Gás</div>
+        </div>
+        <div class="card-value-container">
+          <span class="card-value" id="gas">--</span>
+        </div>
+      </div>
+
+      <div class="card" id="card-gas-amb">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M5 15a7 7 0 0 1 14 0v2H5v-2Z"
+              stroke="#95a5a6"
+              stroke-width="2"
+            />
+            <path d="M9 22h6" stroke="#95a5a6" stroke-width="2" />
+            <path d="M12 18v4" stroke="#95a5a6" stroke-width="2" />
+          </svg>
+          <div class="card-label">Gás Ambiente</div>
+        </div>
+        <div class="card-value-container">
+          <span class="card-value" id="gas_amb">--</span>
+        </div>
+      </div>
+    </main>
+
+    <div class="charts-container">
+      <div class="chart-card">
+        <h3>Histórico de Temperatura</h3>
+        <div id="chart-temperatura"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Histórico de Umidade</h3>
+        <div id="chart-umidade"></div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
